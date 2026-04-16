@@ -6,15 +6,15 @@ import (
 	"os"
 	"path/filepath"
 
-	"simple-agent/util"
+	"simple-agent/utils"
 )
 
 //go:embed prompt.json
 var defaultPromptJSON []byte
 
 var (
-	corePath   = util.MemoryDir + "/" + "core.md"
-	memoryPath = util.MemoryDir + "/" + "memory.md"
+	corePath   = utils.MemoryDir + "/" + "core.md"
+	memoryPath = utils.MemoryDir + "/" + "memory.md"
 )
 
 type system struct {

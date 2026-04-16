@@ -27,22 +27,35 @@ func New(client model.Model, ui tea.UI) *Agent {
 // 它应当非阻塞：在内部启动 goroutine 发起流式请求，通过 ui 推送结果。
 func (a *Agent) OnSubmit(question string) {
 	go func() {
-		stream := a.client.NewStreaming(context.Background(), a.history, question)
+		for {
+			if question != "" {
+				a.history = append(a.history, types.Message{Role: "user", Content: question})
+			}
+			stream := a.client.NewStreaming(context.Background(), a.history)
 
-		for stream.Next() {
-			event := stream.Current()
-			a.ui.AppendChunk(event)
-		}
+			for stream.Next() {
+				block := stream.Current()
+				a.ui.AppendChunk(block)
+			}
 
-		if err := stream.Err(); err != nil {
-			a.ui.Fail(err)
-			return
-		}
+			// 检查错误
+			if err := stream.Err(); err != nil {
+				a.ui.Fail(err)
+				return
+			}
 
-		finalContent := stream.GetResponse()
-		if finalContent != "" {
-			a.history = append(a.history, types.Message{Role: "assistant", Content: finalContent})
+			finalContent := stream.Response()
+			if finalContent != "" {
+				a.history = append(a.history, types.Message{Role: "assistant", Content: finalContent})
+			}
+			a.ui.Done(finalContent)
+
+			// 检查退出原因
+			if !stream.StopReason().IsToolUse() {
+				return
+			}
+
+			question = ""
 		}
-		a.ui.Done(finalContent)
 	}()
 }

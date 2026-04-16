@@ -7,17 +7,18 @@ import (
 )
 
 type Model interface {
-	NewStreaming(ctx context.Context, history []types.Message, question string) Stream
+	NewStreaming(ctx context.Context, messages []types.Message) Stream
 }
 
 type Stream interface {
 	Next() bool
 	Err() error
 	Current() string
-	GetResponse() string
+	Response() string
+	StopReason() StopReason
 }
 
-type modelImpl struct {
-	modelName string
-	maxToken  int
+type StopReason interface {
+	String() string
+	IsToolUse() bool
 }

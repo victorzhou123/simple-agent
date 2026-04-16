@@ -25,10 +25,8 @@ func New(client *anthropic.Client, modelName string, systemPrompt prompt.SystemP
 }
 
 func (c *claudeCli) NewStreaming(
-	ctx context.Context, history []types.Message, question string,
+	ctx context.Context, messages []types.Message,
 ) Stream {
-	history = append(history, types.Message{Role: "user", Content: question})
-
 	s := c.client.Messages.NewStreaming(ctx,
 		anthropic.MessageNewParams{
 			Model:     anthropic.Model(c.modelName),
@@ -36,21 +34,17 @@ func (c *claudeCli) NewStreaming(
 			System: []anthropic.TextBlockParam{
 				{Text: c.systemPrompt.GetPrompt()},
 			},
-			Messages: buildParams(history),
+			Messages: buildParams(messages),
 		},
 	)
 
-	var assembled strings.Builder
-
-	return &stream{
-		stream:    s,
-		assembled: assembled,
-	}
+	return &stream{stream: s}
 }
 
 type stream struct {
-	assembled strings.Builder
-	stream    *ssestream.Stream[anthropic.MessageStreamEventUnion]
+	assembled  strings.Builder
+	stream     *ssestream.Stream[anthropic.MessageStreamEventUnion]
+	stopReason StopReason
 }
 
 func (s *stream) Next() bool {
@@ -62,18 +56,46 @@ func (s *stream) Err() error {
 }
 
 func (s *stream) Current() string {
-	event := s.stream.Current()
-	if e, ok := event.AsAny().(anthropic.ContentBlockDeltaEvent); ok {
-		if d, ok := e.Delta.AsAny().(anthropic.TextDelta); ok {
+	switch e := s.stream.Current().AsAny().(type) {
+	case anthropic.MessageStartEvent:
+		_ = e // 可从 e.Message 获取 model、usage 等初始信息
+	case anthropic.ContentBlockStartEvent:
+		_ = e // 可从 e.ContentBlock 获取 block 类型
+	case anthropic.ContentBlockDeltaEvent:
+		switch d := e.Delta.AsAny().(type) {
+		case anthropic.TextDelta:
 			s.assembled.WriteString(d.Text)
 			return d.Text
+		case anthropic.InputJSONDelta:
+			s.assembled.WriteString(d.PartialJSON)
+			return d.PartialJSON
 		}
+	case anthropic.ContentBlockStopEvent:
+		_ = e
+	case anthropic.MessageDeltaEvent:
+		s.stopReason = stopReason(e.Delta.StopReason)
+	case anthropic.MessageStopEvent:
+		_ = e
 	}
 	return ""
 }
 
-func (s *stream) GetResponse() string {
+func (s stream) Response() string {
 	return s.assembled.String()
+}
+
+func (s stream) StopReason() StopReason {
+	return s.stopReason
+}
+
+type stopReason string // "end_turn", "max_tokens", "stop_sequence", "tool_use", "pause_turn"
+
+func (s stopReason) String() string {
+	return string(s)
+}
+
+func (s stopReason) IsToolUse() bool {
+	return s.String() == "tool_use"
 }
 
 func buildParams(history []types.Message) []anthropic.MessageParam {
