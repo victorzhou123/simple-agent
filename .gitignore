@@ -1,0 +1,4 @@
+.claude/
+.vscode/
+.env
+.DS_Store
