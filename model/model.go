@@ -2,7 +2,6 @@ package model
 
 import (
 	"context"
-
 	"simple-agent/types"
 )
 
@@ -15,6 +14,7 @@ type Stream interface {
 	Err() error
 	Current() string
 	Response() string
+	ToolCalls() []types.ToolCall
 	StopReason() StopReason
 }
 

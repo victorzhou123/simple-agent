@@ -1,15 +1,41 @@
 package types
 
-// streamChunkMsg 是每个流式文本块触发的消息
-type StreamChunkMsg string
+import "simple-agent/tools"
 
-// streamDoneMsg 表示流式输出结束
-type StreamDoneMsg struct{}
+const (
+	// type
+	TYPE_TEXT        MessageType = "text"
+	TYPE_TOOL_USE    MessageType = "tool_use"
+	TYPE_TOOL_RESULT MessageType = "tool_result"
 
-// streamErrMsg 表示流式输出出错
-type StreamErrMsg struct{ err error }
+	// role
+	ROLE_USER      MessageRole = "user"
+	ROLE_ASSISTANT MessageRole = "assistant"
+)
+
+type MessageType string
+type MessageRole string
 
 type Message struct {
-	Role    string // "user" | "assistant"
-	Content string
+	Type        MessageType
+	Role        MessageRole
+	Content     string
+	ToolCalls   []ToolCall
+	ToolResults []ToolResult
+}
+
+type ToolCall struct {
+	ID    string
+	Name  string
+	Input map[string]any
+}
+
+func (t ToolCall) IsToolTodo() bool {
+	return t.Name == tools.TOOL_NAME_TODO
+}
+
+type ToolResult struct {
+	ToolUseID string
+	Content   string
+	IsError   bool
 }
