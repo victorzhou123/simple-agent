@@ -1,14 +1,17 @@
-package model
+package claude
 
 import (
 	"context"
 	"encoding/json"
+	"strings"
+
+	"simple-agent/model"
 	"simple-agent/prompt"
 	"simple-agent/tools"
 	"simple-agent/types"
-	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"
 )
 
@@ -18,17 +21,23 @@ type claudeCli struct {
 	systemPrompt prompt.SystemPrompt
 }
 
-func New(client *anthropic.Client, modelName string, systemPrompt prompt.SystemPrompt) Model {
+func New(cfg Config, systemPrompt prompt.SystemPrompt) model.Model {
+	opts := []option.RequestOption{option.WithAPIKey(cfg.ApiKey)}
+	if cfg.BaseURL != "" {
+		opts = append(opts, option.WithBaseURL(cfg.BaseURL))
+	}
+	client := anthropic.NewClient(opts...)
+
 	return &claudeCli{
-		client:       client,
-		modelName:    modelName,
+		client:       &client,
+		modelName:    cfg.Model,
 		systemPrompt: systemPrompt,
 	}
 }
 
 func (c *claudeCli) NewStreaming(
 	ctx context.Context, messages []types.Message,
-) Stream {
+) model.Stream {
 	s := c.client.Messages.NewStreaming(ctx,
 		anthropic.MessageNewParams{
 			Model:     anthropic.Model(c.modelName),
@@ -47,7 +56,7 @@ func (c *claudeCli) NewStreaming(
 type stream struct {
 	textBuilder strings.Builder
 	stream      *ssestream.Stream[anthropic.MessageStreamEventUnion]
-	stopReason  StopReason
+	stopReason  model.StopReason
 
 	inToolBlock     bool
 	currentToolID   string
@@ -114,7 +123,7 @@ func (s stream) ToolCalls() []types.ToolCall {
 	return s.toolCalls
 }
 
-func (s stream) StopReason() StopReason {
+func (s stream) StopReason() model.StopReason {
 	return s.stopReason
 }
 

@@ -6,30 +6,16 @@ import (
 
 	"simple-agent/agent"
 	"simple-agent/config"
-	"simple-agent/model"
+	"simple-agent/model/claude"
 	"simple-agent/prompt"
 	"simple-agent/tea"
-
-	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/anthropics/anthropic-sdk-go/option"
 )
 
 func main() {
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "错误："+err.Error())
+	cfg := new(config.Config)
+	if err := config.LoadConfig("./config/config.json", cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "配置文件加载出错: %v\n", err)
 		os.Exit(1)
-	}
-
-	opts := []option.RequestOption{option.WithAPIKey(cfg.ApiKey)}
-	if cfg.BaseURL != "" {
-		opts = append(opts, option.WithBaseURL(cfg.BaseURL))
-	}
-	client := anthropic.NewClient(opts...)
-
-	endpoint := "api.anthropic.com"
-	if cfg.BaseURL != "" {
-		endpoint = cfg.BaseURL
 	}
 
 	// 用闭包打破 agent ↔ tea 的初始化循环依赖：
@@ -45,15 +31,15 @@ func main() {
 
 	prog, ui := tea.New(
 		tea.Config{
-			ModelName: cfg.Model,
-			Endpoint:  endpoint,
+			ModelName: "Claude",
+			Endpoint:  cfg.Model.Claude.BaseURL,
 		},
 		func(question string) {
 			ag.OnSubmit(question)
 		},
 	)
 
-	modelCli := model.New(&client, cfg.Model, sysPrompt)
+	modelCli := claude.New(cfg.Model.Claude, sysPrompt)
 
 	ag = agent.New(modelCli, ui)
 

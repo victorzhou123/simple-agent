@@ -1,0 +1,9 @@
+{
+  "model": {
+    "claude": {
+      "api_key": "sk-NdSj893IGC0HHk8WFMspIBvymVIUzLd6woEhOpygFHFVrQss",
+      "base_url": "https://terminal.pub",
+      "model": "claude-opus-4-6"
+    }
+  }
+}
