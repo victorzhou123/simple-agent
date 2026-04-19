@@ -13,9 +13,11 @@ import (
 
 // UI 是 tea 包对外暴露的接口，Agent 调用它来驱动显示。
 type UI interface {
-	AppendChunk(text string)    // 推送一个流式文本块
-	Done(finalContent string)   // 流式结束，传入完整内容
-	Fail(err error)             // 出错
+	AppendChunk(text string)                                      // 推送一个流式文本块
+	Done(finalContent string)                                     // 流式结束，传入完整内容
+	Fail(err error)                                               // 出错
+	ShowToolCall(toolName string, input map[string]any)           // 显示工具调用
+	ShowToolResult(toolName string, output string, err error)     // 显示工具结果
 }
 
 // SubmitFunc 是用户提交问题时的回调，由外部（Agent）注册。
@@ -41,7 +43,7 @@ func (p *Program) Run() error {
 // onSubmit 在用户按下 Ctrl+J 时被调用，应当非阻塞（内部自行启动 goroutine）。
 func New(cfg Config, onSubmit SubmitFunc) (*Program, UI) {
 	ta := textarea.New()
-	ta.Placeholder = "输入问题，Ctrl+Enter 发送，Ctrl+C 退出..."
+	ta.Placeholder = "输入问题，Enter 发送，Ctrl+C 退出..."
 	ta.Focus()
 	ta.CharLimit = 2000
 	ta.SetWidth(80)
@@ -79,6 +81,14 @@ type uiImpl struct {
 func (u *uiImpl) AppendChunk(text string)  { u.send(chunkMsg(text)) }
 func (u *uiImpl) Done(final string)        { u.send(doneMsg{content: final}) }
 func (u *uiImpl) Fail(err error)           { u.send(failMsg{err: err}) }
+
+func (u *uiImpl) ShowToolCall(toolName string, input map[string]any) {
+	u.send(chunkMsg(FormatToolCall(toolName, input)))
+}
+
+func (u *uiImpl) ShowToolResult(toolName string, output string, err error) {
+	u.send(chunkMsg(FormatToolResult(toolName, output, err)))
+}
 
 // ── 内部消息类型 ───────────────────────────────────────────────────────────────
 
@@ -144,7 +154,7 @@ func (m teaModel) Update(msg bubbletea.Msg) (bubbletea.Model, bubbletea.Cmd) {
 		switch msg.Type {
 		case bubbletea.KeyCtrlC:
 			return m, bubbletea.Quit
-		case bubbletea.KeyCtrlJ:
+		case bubbletea.KeyEnter:
 			if m.state == stateIdle {
 				return m.handleSubmit()
 			}
@@ -258,11 +268,11 @@ func (m teaModel) View() string {
 	sb.WriteString("\n")
 
 	if m.state == stateStreaming {
-		sb.WriteString(dimStyle.Render("AI 正在输出中..."))
+		sb.WriteString(dimStyle.Render("AI 正在输出中 " + m.spinner.View()))
 	} else if m.errMsg != "" {
 		sb.WriteString(errorStyle.Render("错误: " + m.errMsg))
 	} else {
-		sb.WriteString(dimStyle.Render("Ctrl+J 发送  Ctrl+C 退出  ↑/↓ 滚动历史"))
+		sb.WriteString(dimStyle.Render("Enter 发送  Ctrl+C 退出  ↑/↓ 滚动历史"))
 	}
 	sb.WriteString("\n\n")
 

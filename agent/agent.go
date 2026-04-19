@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"fmt"
 
 	"simple-agent/model"
 	"simple-agent/tea"
@@ -66,13 +65,18 @@ func (a *Agent) OnSubmit(question string) {
 			// Execute each tool and collect results.
 			results := make([]types.ToolResult, 0, len(toolCalls))
 			for _, tc := range toolCalls {
-				a.ui.AppendChunk(fmt.Sprintf("\n\n[tool: %s]\n", tc.Name))
+				// 显示格式化的工具调用标题
+				a.ui.ShowToolCall(tc.Name, tc.Input)
 
 				if tc.Name == tools.TOOL_NAME_TODO {
 					usedTodo = true
 				}
 
 				out, err := tools.Call(tc.Name, tc.Input)
+
+				// 显示格式化的工具执行结果
+				a.ui.ShowToolResult(tc.Name, out, err)
+
 				result := types.ToolResult{ToolUseID: tc.ID, Content: out}
 				if err != nil {
 					result.Content = err.Error()
