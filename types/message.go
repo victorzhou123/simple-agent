@@ -1,7 +1,5 @@
 package types
 
-import "simple-agent/tools"
-
 const (
 	// type
 	TYPE_TEXT        MessageType = "text"
@@ -31,7 +29,7 @@ type ToolCall struct {
 }
 
 func (t ToolCall) IsToolTodo() bool {
-	return t.Name == tools.TOOL_NAME_TODO
+	return t.Name == "todo"
 }
 
 type ToolResult struct {

@@ -4,21 +4,8 @@ import (
 	"fmt"
 
 	"simple-agent/tools/base"
-	"simple-agent/tools/bash"
-	editfile "simple-agent/tools/edit_file"
-	readfile "simple-agent/tools/read_file"
-	"simple-agent/tools/todo"
-	writefile "simple-agent/tools/write_file"
 
 	"github.com/anthropics/anthropic-sdk-go"
-)
-
-const (
-	TOOL_NAME_BASH       = "bash"
-	TOOL_NAME_READ_FILE  = "read_file"
-	TOOL_NAME_WRITE_FILE = "write_file"
-	TOOL_NAME_EDIT_FILE  = "edit_file"
-	TOOL_NAME_TODO       = "todo"
 )
 
 // Re-export base types so callers only need to import "simple-agent/tools".
@@ -29,16 +16,15 @@ type (
 
 var NewBaseTool = base.NewBaseTool
 
-var factories = map[string]func(ToolConfig) Tool{
-	TOOL_NAME_BASH:       bash.New,
-	TOOL_NAME_READ_FILE:  readfile.New,
-	TOOL_NAME_WRITE_FILE: writefile.New,
-	TOOL_NAME_EDIT_FILE:  editfile.New,
-	TOOL_NAME_TODO:       todo.New,
-}
+// factories stores tool implementations, populated by init() in each tool package.
+var factories = map[string]func(ToolConfig) Tool{}
 
-// Register allows external packages to add tools at startup.
+// Register allows tool packages to register themselves at startup.
+// Each tool package should call this in its init() function.
 func Register(name string, factory func(ToolConfig) Tool) {
+	if _, exists := factories[name]; exists {
+		panic(fmt.Sprintf("tools: duplicate registration for %q", name))
+	}
 	factories[name] = factory
 }
 
