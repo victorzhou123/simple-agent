@@ -9,6 +9,12 @@ type Tool interface {
 	Call(ctx context.Context, args map[string]any) (string, error)
 }
 
+// ToolCaller is an interface for calling tools by name
+type ToolCaller interface {
+	Call(ctx context.Context, name string, args map[string]any) (string, error)
+	GetAllTools() []Tool
+}
+
 type InputSchema struct {
 	Properties map[string]any `json:"properties"`
 	Required   []string       `json:"required"`

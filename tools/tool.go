@@ -4,9 +4,25 @@ import (
 	"context"
 	"fmt"
 
+	"simple-agent/model"
 	"simple-agent/tools/base"
+	"simple-agent/tools/bash"
+	editfile "simple-agent/tools/edit_file"
+	readfile "simple-agent/tools/read_file"
+	"simple-agent/tools/subagent"
+	"simple-agent/tools/todo"
+	writefile "simple-agent/tools/write_file"
 
 	"github.com/anthropics/anthropic-sdk-go"
+)
+
+const (
+	TOOL_NAME_BASH       = "bash"
+	TOOL_NAME_READ_FILE  = "read_file"
+	TOOL_NAME_WRITE_FILE = "write_file"
+	TOOL_NAME_EDIT_FILE  = "edit_file"
+	TOOL_NAME_TODO       = "todo"
+	TOOL_NAME_SUBAGENT   = "subagent"
 )
 
 // Re-export base types so callers only need to import "simple-agent/tools".
@@ -15,44 +31,52 @@ type (
 	ToolConfig = base.ToolConfig
 )
 
-var NewBaseTool = base.NewBaseTool
-
-// factories stores tool implementations, populated by init() in each tool package.
-var factories = map[string]func(ToolConfig) Tool{}
-
-// Register allows tool packages to register themselves at startup.
-// Each tool package should call this in its init() function.
-func Register(name string, factory func(ToolConfig) Tool) {
-	if _, exists := factories[name]; exists {
-		panic(fmt.Sprintf("tools: duplicate registration for %q", name))
-	}
-	factories[name] = factory
-}
-
-// All holds every Tool in the order defined by tools.json.
-var All []Tool
-
 // Params is the Anthropic-SDK representation of All.
-var Params []anthropic.ToolUnionParam
+var AnthropicParams []anthropic.ToolUnionParam
+// AnthropicSubParams is the Anthropic-SDK representation of all tools except subagent, which is used for subagent calls. We want to avoid infinite recursion of subagent calling itself.
+var AnthropicSubParams []anthropic.ToolUnionParam
 
-var index = map[string]Tool{}
+var toolIndex = map[string]Tool{}
 
-func Init(cfg []ToolConfig) {
-	for _, cfg := range cfg {
-		factory, ok := factories[cfg.Name]
-		if !ok {
-			panic(fmt.Sprintf("tools: no implementation for %q", cfg.Name))
+func Init(cli model.Model, cfg Config) {
+	// tools registration
+	for _, cf := range cfg.Tools {
+		switch cf.Name {
+		case TOOL_NAME_BASH:
+			t := bash.New(cf)
+			toolIndex[cf.Name] = t
+			continue
+		case TOOL_NAME_READ_FILE:
+			t := readfile.New(cf)
+			toolIndex[cf.Name] = t
+			continue
+		case TOOL_NAME_WRITE_FILE:
+			t := writefile.New(cf)
+			toolIndex[cf.Name] = t
+			continue
+		case TOOL_NAME_EDIT_FILE:
+			t := editfile.New(cf)
+			toolIndex[cf.Name] = t
+			continue
+		case TOOL_NAME_TODO:
+			t := todo.New(cf)
+			toolIndex[cf.Name] = t
+			continue
+		case TOOL_NAME_SUBAGENT:
+			t := subagent.New(cf, cli, cfg.SubagentConfig, Call)
+			toolIndex[cf.Name] = t
+			continue
+		default:
+			panic(fmt.Sprintf("tools: unknown tool name %q in config", cf.Name))
 		}
-		t := factory(cfg)
-		All = append(All, t)
-		index[t.Name()] = t
-		Params = append(Params, toAnthropicParam(t))
 	}
+
+	initAnthropicParams()
 }
 
 // Call dispatches to the named tool.
 func Call(ctx context.Context, name string, args map[string]any) (string, error) {
-	t, ok := index[name]
+	t, ok := toolIndex[name]
 	if !ok {
 		return "", fmt.Errorf("tools: unknown tool %q", name)
 	}
@@ -69,5 +93,16 @@ func toAnthropicParam(t Tool) anthropic.ToolUnionParam {
 				Required:   t.Schema().Required,
 			},
 		},
+	}
+}
+
+func initAnthropicParams() {
+	// build anthropic params for all tools in toolIndex
+	for _, t := range toolIndex {
+		if t.Name() == TOOL_NAME_SUBAGENT {
+			AnthropicParams = append(AnthropicParams, toAnthropicParam(t))
+			continue
+		}
+		AnthropicSubParams = append(AnthropicSubParams, toAnthropicParam(t))
 	}
 }

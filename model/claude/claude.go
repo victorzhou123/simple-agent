@@ -38,6 +38,11 @@ func New(cfg Config, systemPrompt prompt.SystemPrompt) model.Model {
 func (c *claudeCli) NewStreaming(
 	ctx context.Context, messages []types.Message,
 ) model.Stream {
+	// TODO error handling
+	if err := ctx.Err(); err != nil {
+		return nil
+	}
+
 	s := c.client.Messages.NewStreaming(ctx,
 		anthropic.MessageNewParams{
 			Model:     anthropic.Model(c.modelName),
@@ -46,7 +51,28 @@ func (c *claudeCli) NewStreaming(
 				{Text: c.systemPrompt.GetPrompt()},
 			},
 			Messages: buildParams(messages),
-			Tools:    tools.Params,
+			Tools:    tools.AnthropicParams,
+		},
+	)
+
+	return &stream{stream: s}
+}
+
+func (c *claudeCli) NewSubagentStream(ctx context.Context, messages []types.Message) model.Stream {
+	// For subagent stream, we want to stop immediately when tool calls are generated, so we set max_tokens to 0 to disable the generation of response content.
+	if err := ctx.Err(); err != nil {
+		return nil
+	}
+
+	s := c.client.Messages.NewStreaming(ctx,
+		anthropic.MessageNewParams{
+			Model:     anthropic.Model(c.modelName),
+			MaxTokens: 0,
+			System: []anthropic.TextBlockParam{
+				{Text: c.systemPrompt.GetPrompt()},
+			},
+			Messages: buildParams(messages),
+			Tools:    tools.AnthropicSubParams,
 		},
 	)
 

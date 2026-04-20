@@ -7,6 +7,7 @@ import (
 
 type Model interface {
 	NewStreaming(ctx context.Context, messages []types.Message) Stream
+	NewSubagentStream(ctx context.Context, messages []types.Message) Stream
 }
 
 type Stream interface {

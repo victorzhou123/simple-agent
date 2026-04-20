@@ -37,10 +37,10 @@ func main() {
 		},
 	)
 
-	// tools init
-	tools.Init(cfg.Tools.Tools)
-
 	modelCli := claude.New(cfg.Model.Claude, sysPrompt)
+
+	// tools init
+	tools.Init(modelCli, cfg.Tools)
 
 	ag = agent.New(modelCli, ui, cfg.Agent)
 
