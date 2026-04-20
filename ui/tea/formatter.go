@@ -8,15 +8,6 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 )
 
-// 工具图标映射
-var toolIcons = map[string]string{
-	"bash":       "🔧",
-	"read_file":  "📄",
-	"write_file": "✏️",
-	"edit_file":  "📝",
-	"todo":       "📋",
-}
-
 // 工具输出样式
 var (
 	toolHeaderStyle = lipgloss.NewStyle().
@@ -41,9 +32,24 @@ var (
 			Bold(true)
 )
 
+type Formatter interface {
+	FormatToolCall(toolName string, input map[string]any) string
+	FormatToolResult(toolName string, output string, err error) string
+}
+
+type formatter struct {
+	toolIcons map[string]string
+}
+
+func newFormatter(cfg FormatterConfig) Formatter {
+	return &formatter{
+		toolIcons: cfg.Icons,
+	}
+}
+
 // FormatToolCall 格式化工具调用标题
-func FormatToolCall(toolName string, input map[string]any) string {
-	icon, ok := toolIcons[toolName]
+func (f *formatter) FormatToolCall(toolName string, input map[string]any) string {
+	icon, ok := f.toolIcons[toolName]
 	if !ok {
 		icon = "⚙️"
 	}
@@ -73,7 +79,7 @@ func FormatToolCall(toolName string, input map[string]any) string {
 }
 
 // FormatToolResult 格式化工具执行结果
-func FormatToolResult(toolName string, output string, err error) string {
+func (f *formatter) FormatToolResult(toolName string, output string, err error) string {
 	var result strings.Builder
 
 	// 输出内容
@@ -82,7 +88,7 @@ func FormatToolResult(toolName string, output string, err error) string {
 
 		// 特殊处理 todo 工具，使用表格展示
 		if toolName == "todo" {
-			formatted := formatTodoOutput(output)
+			formatted := f.formatTodoOutput(output)
 			result.WriteString(formatted)
 		} else {
 			// 限制输出长度，避免界面过长
@@ -106,7 +112,7 @@ func FormatToolResult(toolName string, output string, err error) string {
 }
 
 // formatTodoOutput 解析 todo 工具的输出并格式化为表格
-func formatTodoOutput(output string) string {
+func (f *formatter) formatTodoOutput(output string) string {
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 	if len(lines) == 0 {
 		return "无任务"
@@ -154,11 +160,11 @@ func formatTodoOutput(output string) string {
 		return "无任务"
 	}
 
-	return FormatTable(headers, rows)
+	return f.formatTable(headers, rows)
 }
 
 // FormatTable 创建表格样式（用于 todo 等结构化数据）
-func FormatTable(headers []string, rows [][]string) string {
+func (f *formatter) formatTable(headers []string, rows [][]string) string {
 	if len(rows) == 0 {
 		return ""
 	}

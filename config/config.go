@@ -4,11 +4,15 @@ import (
 	"reflect"
 
 	modelCfg "simple-agent/model/config"
+	toolsCfg "simple-agent/tools"
+	uiCfg "simple-agent/ui/config"
 	"simple-agent/utils"
 )
 
 type Config struct {
 	Model modelCfg.Config `json:"model"`
+	Tools toolsCfg.Config `json:"tools"`
+	UI    uiCfg.Config    `json:"ui"`
 }
 
 func LoadConfig(path string, cfg *Config) error {

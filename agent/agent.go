@@ -4,18 +4,18 @@ import (
 	"context"
 
 	"simple-agent/model"
-	"simple-agent/tea"
 	"simple-agent/tools"
 	"simple-agent/types"
+	"simple-agent/ui"
 )
 
 type Agent struct {
 	client  model.Model
-	ui      tea.UI
+	ui      ui.UI
 	history []types.Message
 }
 
-func New(client model.Model, ui tea.UI) *Agent {
+func New(client model.Model, ui ui.UI) *Agent {
 	return &Agent{
 		client: client,
 		ui:     ui,

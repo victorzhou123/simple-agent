@@ -1,8 +1,6 @@
 package tools
 
 import (
-	_ "embed"
-	"encoding/json"
 	"fmt"
 
 	"simple-agent/tools/base"
@@ -31,9 +29,6 @@ type (
 
 var NewBaseTool = base.NewBaseTool
 
-//go:embed tools.json
-var toolsJSON []byte
-
 var factories = map[string]func(ToolConfig) Tool{
 	TOOL_NAME_BASH:       bash.New,
 	TOOL_NAME_READ_FILE:  readfile.New,
@@ -55,12 +50,8 @@ var Params []anthropic.ToolUnionParam
 
 var index = map[string]Tool{}
 
-func init() {
-	var configs []ToolConfig
-	if err := json.Unmarshal(toolsJSON, &configs); err != nil {
-		panic("tools: failed to parse tools.json: " + err.Error())
-	}
-	for _, cfg := range configs {
+func Init(cfg []ToolConfig) {
+	for _, cfg := range cfg {
 		factory, ok := factories[cfg.Name]
 		if !ok {
 			panic(fmt.Sprintf("tools: no implementation for %q", cfg.Name))

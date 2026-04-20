@@ -8,7 +8,8 @@ import (
 	"simple-agent/config"
 	"simple-agent/model/claude"
 	"simple-agent/prompt"
-	"simple-agent/tea"
+	"simple-agent/tools"
+	"simple-agent/ui/tea"
 )
 
 func main() {
@@ -29,21 +30,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	prog, ui := tea.New(
-		tea.Config{
-			ModelName: "Claude",
-			Endpoint:  cfg.Model.Claude.BaseURL,
-		},
+	ui := tea.New(
+		cfg.UI.Tea,
 		func(question string) {
 			ag.OnSubmit(question)
 		},
 	)
 
+	// tools init
+	tools.Init(cfg.Tools.Tools)
+
 	modelCli := claude.New(cfg.Model.Claude, sysPrompt)
 
 	ag = agent.New(modelCli, ui)
 
-	if err := prog.Run(); err != nil {
+	if err := ui.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "程序出错: %v\n", err)
 		os.Exit(1)
 	}
