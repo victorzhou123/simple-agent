@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"context"
 	"fmt"
 
 	"simple-agent/tools/base"
@@ -50,12 +51,12 @@ func Init(cfg []ToolConfig) {
 }
 
 // Call dispatches to the named tool.
-func Call(name string, args map[string]any) (string, error) {
+func Call(ctx context.Context, name string, args map[string]any) (string, error) {
 	t, ok := index[name]
 	if !ok {
 		return "", fmt.Errorf("tools: unknown tool %q", name)
 	}
-	return t.Call(args)
+	return t.Call(ctx, args)
 }
 
 func toAnthropicParam(t Tool) anthropic.ToolUnionParam {

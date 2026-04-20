@@ -1,10 +1,12 @@
 package base
 
+import "context"
+
 type Tool interface {
 	Name() string
 	Description() string
 	Schema() InputSchema
-	Call(args map[string]any) (string, error)
+	Call(ctx context.Context, args map[string]any) (string, error)
 }
 
 type InputSchema struct {

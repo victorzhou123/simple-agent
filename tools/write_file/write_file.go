@@ -1,6 +1,7 @@
 package writefile
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -13,7 +14,10 @@ func New(cfg base.ToolConfig) base.Tool {
 
 type writeFileTool struct{ base.BaseTool }
 
-func (t *writeFileTool) Call(args map[string]any) (string, error) {
+func (t *writeFileTool) Call(ctx context.Context, args map[string]any) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	path, ok := args["path"].(string)
 	if !ok || path == "" {
 		return "", fmt.Errorf("write_file: path must be a non-empty string")

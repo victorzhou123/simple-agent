@@ -1,6 +1,7 @@
 package editfile
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -14,7 +15,10 @@ func New(cfg base.ToolConfig) base.Tool {
 
 type editFileTool struct{ base.BaseTool }
 
-func (t *editFileTool) Call(args map[string]any) (string, error) {
+func (t *editFileTool) Call(ctx context.Context, args map[string]any) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	path, ok := args["path"].(string)
 	if !ok || path == "" {
 		return "", fmt.Errorf("edit_file: path must be a non-empty string")

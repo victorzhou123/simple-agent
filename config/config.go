@@ -3,6 +3,7 @@ package config
 import (
 	"reflect"
 
+	agentCfg "simple-agent/agent"
 	modelCfg "simple-agent/model/config"
 	toolsCfg "simple-agent/tools"
 	uiCfg "simple-agent/ui/config"
@@ -10,6 +11,7 @@ import (
 )
 
 type Config struct {
+	Agent agentCfg.Config `json:"agent"`
 	Model modelCfg.Config `json:"model"`
 	Tools toolsCfg.Config `json:"tools"`
 	UI    uiCfg.Config    `json:"ui"`
@@ -21,7 +23,8 @@ func LoadConfig(path string, cfg *Config) error {
 	}
 
 	cfg.Model.LoadFromEnv()
-	return nil
+
+	return cfg.SetDefaultAndValidate()
 }
 
 func (cfg *Config) SetDefaultAndValidate() error {

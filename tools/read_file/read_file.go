@@ -1,6 +1,7 @@
 package readfile
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -14,7 +15,10 @@ func New(cfg base.ToolConfig) base.Tool {
 
 type readFileTool struct{ base.BaseTool }
 
-func (t *readFileTool) Call(args map[string]any) (string, error) {
+func (t *readFileTool) Call(ctx context.Context, args map[string]any) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	path, ok := args["path"].(string)
 	if !ok || path == "" {
 		return "", fmt.Errorf("read_file: path must be a non-empty string")

@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"time"
 
 	"simple-agent/model"
 	"simple-agent/tools"
@@ -13,12 +14,14 @@ type Agent struct {
 	client  model.Model
 	ui      ui.UI
 	history []types.Message
+	config  Config
 }
 
-func New(client model.Model, ui ui.UI) *Agent {
+func New(client model.Model, ui ui.UI, cfg Config) *Agent {
 	return &Agent{
 		client: client,
 		ui:     ui,
+		config: cfg,
 	}
 }
 
@@ -27,12 +30,15 @@ func (a *Agent) OnSubmit(question string) {
 		var usedTodo bool
 		var roundsSinceTodo int
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(a.config.StreamTimeOut)*time.Second)
+		defer cancel()
+
 		for {
 			if question != "" {
 				a.history = append(a.history, types.Message{Role: types.ROLE_USER, Content: question})
 			}
 
-			stream := a.client.NewStreaming(context.Background(), a.history)
+			stream := a.client.NewStreaming(ctx, a.history)
 			for stream.Next() {
 				a.ui.AppendChunk(stream.Current())
 			}
@@ -72,7 +78,7 @@ func (a *Agent) OnSubmit(question string) {
 					usedTodo = true
 				}
 
-				out, err := tools.Call(tc.Name, tc.Input)
+				out, err := tools.Call(context.Background(), tc.Name, tc.Input)
 
 				// 显示格式化的工具执行结果
 				a.ui.ShowToolResult(tc.Name, out, err)

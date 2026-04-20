@@ -1,6 +1,7 @@
 package todo
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -26,7 +27,10 @@ func New(cfg base.ToolConfig) base.Tool {
 
 type todoTool struct{ base.BaseTool }
 
-func (t *todoTool) Call(args map[string]any) (string, error) {
+func (t *todoTool) Call(ctx context.Context, args map[string]any) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	raw, ok := args["items"]
 	if !ok {
 		return "", fmt.Errorf("todo: missing required field 'items'")

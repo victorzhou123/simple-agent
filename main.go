@@ -42,7 +42,7 @@ func main() {
 
 	modelCli := claude.New(cfg.Model.Claude, sysPrompt)
 
-	ag = agent.New(modelCli, ui)
+	ag = agent.New(modelCli, ui, cfg.Agent)
 
 	if err := ui.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "程序出错: %v\n", err)
