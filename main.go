@@ -8,6 +8,7 @@ import (
 	"simple-agent/config"
 	"simple-agent/model/claude"
 	"simple-agent/prompt"
+	"simple-agent/skill"
 	"simple-agent/tools"
 	"simple-agent/ui/tea"
 )
@@ -39,8 +40,11 @@ func main() {
 
 	modelCli := claude.New(cfg.Model.Claude, sysPrompt)
 
+	// skill manager init
+	skillMgr := skill.NewSkillManager()
+
 	// tools init
-	tools.Init(modelCli, cfg.Tools)
+	tools.Init(cfg.Tools, modelCli, skillMgr)
 
 	ag = agent.New(modelCli, ui, cfg.Agent)
 

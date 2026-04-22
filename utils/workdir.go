@@ -14,6 +14,7 @@ var (
 	ProjectDir        = ConfigDir + "/" + "projects"
 	CurrentProjectDir = ProjectDir + "/" + getProjectName() + "-" + getProjectSlug()
 	MemoryDir         = CurrentProjectDir + "/" + "memory"
+	SkillDir          = CurrentProjectDir + "/" + "skills"
 )
 
 // homeDir 返回当前用户的 home 目录。

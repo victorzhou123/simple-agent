@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"simple-agent/skill"
 	"simple-agent/utils"
 )
 
@@ -18,8 +19,9 @@ var (
 )
 
 type system struct {
-	core   prompt // 核心身份和行为说明
-	memory prompt
+	core            prompt // 核心身份和行为说明
+	memory          prompt
+	availableSkills prompt
 }
 
 type SystemPrompt interface {
@@ -27,8 +29,10 @@ type SystemPrompt interface {
 }
 
 func (s *system) buildSystemPrompt() prompt {
-	return prompt(s.core.structPrompt("核心身份和行文说明") +
-		s.memory.structPrompt("用户记忆"))
+	return prompt(
+		s.core.structPrompt("核心身份和行文说明") +
+		s.memory.structPrompt("用户记忆") +
+		s.availableSkills.structPrompt("可用技能"))
 }
 
 func (s *system) GetPrompt() string {
@@ -53,7 +57,12 @@ func New() (SystemPrompt, error) {
 		return &system{}, err
 	}
 
-	return &system{core: prompt(core), memory: prompt(memory)}, nil
+	skillManager := skill.NewSkillManager()
+
+	return &system{
+		core:            prompt(core),
+		memory:          prompt(memory),
+		availableSkills: prompt(skillManager.DescribeAvailableSkills())}, nil
 }
 
 // loadOrCreate 读取 path 文件内容；若文件不存在则从 prompt.json 取默认值并写入文件。

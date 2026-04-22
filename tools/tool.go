@@ -5,9 +5,11 @@ import (
 	"fmt"
 
 	"simple-agent/model"
+	"simple-agent/skill"
 	"simple-agent/tools/base"
 	"simple-agent/tools/bash"
 	editfile "simple-agent/tools/edit_file"
+	loadskill "simple-agent/tools/load_skill"
 	readfile "simple-agent/tools/read_file"
 	"simple-agent/tools/subagent"
 	"simple-agent/tools/todo"
@@ -23,6 +25,7 @@ const (
 	TOOL_NAME_EDIT_FILE  = "edit_file"
 	TOOL_NAME_TODO       = "todo"
 	TOOL_NAME_SUBAGENT   = "subagent"
+	TOOL_NAME_LOAD_SKILL = "load_skill"
 )
 
 // Re-export base types so callers only need to import "simple-agent/tools".
@@ -33,12 +36,13 @@ type (
 
 // Params is the Anthropic-SDK representation of All.
 var AnthropicParams []anthropic.ToolUnionParam
+
 // AnthropicSubParams is the Anthropic-SDK representation of all tools except subagent, which is used for subagent calls. We want to avoid infinite recursion of subagent calling itself.
 var AnthropicSubParams []anthropic.ToolUnionParam
 
 var toolIndex = map[string]Tool{}
 
-func Init(cli model.Model, cfg Config) {
+func Init(cfg Config, cli model.Model, skillManager skill.SkillManager) {
 	// tools registration
 	for _, cf := range cfg.Tools {
 		switch cf.Name {
@@ -64,6 +68,10 @@ func Init(cli model.Model, cfg Config) {
 			continue
 		case TOOL_NAME_SUBAGENT:
 			t := subagent.New(cf, cli, cfg.SubagentConfig, Call)
+			toolIndex[cf.Name] = t
+			continue
+		case TOOL_NAME_LOAD_SKILL:
+			t := loadskill.New(cf, skillManager)
 			toolIndex[cf.Name] = t
 			continue
 		default:

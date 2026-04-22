@@ -101,6 +101,15 @@
           },
           "required": ["prompt"]
         }
+      },
+      {
+          "name": "load_skill",
+          "description": "Load the full body of a named skill into the current context.",
+          "input_schema": {
+              "type": "object",
+              "properties": {"name": {"type": "string"}},
+              "required": ["name"]
+          }
       }
     ],
     "subagent": {
