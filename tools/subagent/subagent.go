@@ -7,13 +7,15 @@ import (
 	"simple-agent/model"
 	"simple-agent/tools/base"
 	"simple-agent/types"
+	"simple-agent/ui"
 )
 
-func New(cfg base.ToolConfig, client model.Model, config Config,
+func New(cfg base.ToolConfig, client model.Model, ui ui.UI, config Config,
 	toolCaller func(ctx context.Context, name string, input map[string]any) (string, error)) base.Tool {
 	return &subAgentTool{
 		BaseTool:   base.NewBaseTool(cfg.Name, cfg.Description, cfg.InputSchema),
 		client:     client,
+		ui:         ui,
 		config:     config,
 		toolCaller: toolCaller,
 	}
@@ -23,6 +25,7 @@ type subAgentTool struct {
 	base.BaseTool
 
 	client     model.Model
+	ui         ui.UI
 	config     Config
 	toolCaller func(ctx context.Context, name string, input map[string]any) (string, error)
 }
@@ -46,7 +49,7 @@ func (t *subAgentTool) Call(ctx context.Context, args map[string]any) (string, e
 		stream := t.client.NewSubagentStream(ctx, messages)
 		for stream.Next() {
 			// Silently consume streaming output to avoid UI pollution
-			_ = stream.Current()
+			t.ui.AppendChunk(stream.Current())
 		}
 
 		if err := stream.Err(); err != nil {
@@ -77,7 +80,13 @@ func (t *subAgentTool) Call(ctx context.Context, args map[string]any) (string, e
 		// Execute each tool and collect results.
 		results := make([]types.ToolResult, 0, len(toolCalls))
 		for _, tc := range toolCalls {
+			// 显示格式化的工具调用标题
+			t.ui.ShowToolCall(tc.Name, tc.Input)
+
 			out, err := t.toolCaller(ctx, tc.Name, tc.Input)
+
+			// 显示格式化的工具执行结果
+			t.ui.ShowToolResult(tc.Name, out, err)
 
 			result := types.ToolResult{ToolUseID: tc.ID, Content: out}
 			if err != nil {

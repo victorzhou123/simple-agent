@@ -14,6 +14,7 @@ import (
 	"simple-agent/tools/subagent"
 	"simple-agent/tools/todo"
 	writefile "simple-agent/tools/write_file"
+	"simple-agent/ui"
 
 	"github.com/anthropics/anthropic-sdk-go"
 )
@@ -42,7 +43,7 @@ var AnthropicSubParams []anthropic.ToolUnionParam
 
 var toolIndex = map[string]Tool{}
 
-func Init(cfg Config, cli model.Model, skillManager skill.SkillManager) {
+func Init(cfg Config, cli model.Model, ui ui.UI, skillManager skill.SkillManager) {
 	// tools registration
 	for _, cf := range cfg.Tools {
 		switch cf.Name {
@@ -67,7 +68,7 @@ func Init(cfg Config, cli model.Model, skillManager skill.SkillManager) {
 			toolIndex[cf.Name] = t
 			continue
 		case TOOL_NAME_SUBAGENT:
-			t := subagent.New(cf, cli, cfg.SubagentConfig, Call)
+			t := subagent.New(cf, cli, ui, cfg.SubagentConfig, Call)
 			toolIndex[cf.Name] = t
 			continue
 		case TOOL_NAME_LOAD_SKILL:

@@ -44,7 +44,7 @@ func main() {
 	skillMgr := skill.NewSkillManager()
 
 	// tools init
-	tools.Init(cfg.Tools, modelCli, skillMgr)
+	tools.Init(cfg.Tools, modelCli, ui, skillMgr)
 
 	ag = agent.New(modelCli, ui, cfg.Agent)
 

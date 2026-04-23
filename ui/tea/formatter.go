@@ -107,6 +107,7 @@ func (f *formatter) FormatToolResult(toolName string, output string, err error) 
 	} else {
 		result.WriteString(toolSuccessStyle.Render("✓ 执行成功"))
 	}
+	result.WriteString("\n")
 
 	return result.String()
 }
