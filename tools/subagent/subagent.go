@@ -47,6 +47,7 @@ func (t *subAgentTool) Call(ctx context.Context, args map[string]any) (string, e
 	// Run agent loop (max 30 iterations for safety)
 	for i := 0; i < t.config.MaxRounds; i++ {
 		stream := t.client.NewSubagentStream(ctx, messages)
+		t.ui.AppendChunk("\n")
 		for stream.Next() {
 			// Silently consume streaming output to avoid UI pollution
 			t.ui.AppendChunk(stream.Current())

@@ -7,4 +7,5 @@
 simple-agent
 *.exe
 *.out
-config.json
+
+config/config.json
